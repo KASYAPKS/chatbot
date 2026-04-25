@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AuraMed AI - Medical Assistant</title>
+    <meta name="description" content="AI-powered medical chatbot for symptom analysis and health guidance">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Splash Screen -->
+    <div id="splash-screen" class="splash">
+        <div class="splash-content">
+            <div class="splash-icon"><i class="fas fa-hand-holding-medical"></i></div>
+            <h1>AuraMed AI</h1>
+            <p>Your Advanced Health Assistant</p>
+            <div class="splash-loader"><div class="loader-bar"></div></div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app" class="app hidden">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand"><i class="fas fa-hand-holding-medical"></i><span>AuraMed AI</span></div>
+                <button id="close-sidebar" class="icon-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="sidebar-user">
+                <div class="avatar" id="sidebar-avatar">KS</div>
+                <div><div class="user-name" id="sidebar-name">KS Kasyap</div><div class="user-email">Premium Member</div></div>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-page="chat"><i class="fas fa-comments"></i>Chat</button>
+                <button class="nav-item" data-page="drug-enquiry"><i class="fas fa-search-plus"></i>Drug Enquiry</button>
+                <button class="nav-item" data-page="history"><i class="fas fa-clock-rotate-left"></i>History</button>
+                <button class="nav-item" data-page="drugcheck"><i class="fas fa-pills"></i>Interaction</button>
+                <button class="nav-item" data-page="timeline"><i class="fas fa-chart-line"></i>Tracker</button>
+                <button class="nav-item" data-page="reminders"><i class="fas fa-bell"></i>Reminders</button>
+                <button class="nav-item" data-page="health"><i class="fas fa-notes-medical"></i>Health</button>
+                <button class="nav-item" data-page="settings"><i class="fas fa-gear"></i>Settings</button>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="new-chat-btn" class="btn-primary-full"><i class="fas fa-plus"></i> New Chat</button>
+            </div>
+        </aside>
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+        <!-- Pages Container -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="topbar">
+                <button id="menu-btn" class="icon-btn"><i class="fas fa-bars"></i></button>
+                <div class="topbar-title" id="topbar-title">Chat</div>
+                <div class="topbar-actions">
+                    <button id="call-btn" class="icon-btn" title="Emergency Call"><i class="fas fa-phone"></i></button>
+                    <button id="notif-btn" class="icon-btn" title="Notifications"><i class="fas fa-bell"></i><span class="badge">3</span></button>
+                </div>
+            </header>
+
+            <!-- Chat Page -->
+            <section id="page-chat" class="page active">
+                <div class="chat-container" id="chat-messages">
+                    <div class="welcome-card">
+                        <div class="welcome-icon"><i class="fas fa-hand-holding-medical"></i></div>
+                        <h2>Hello! I'm AuraMed AI</h2>
+                        <p>I am your advanced symptom checker and medical database. I can help with diagnostic assessments, drug info, and health guidance. How are you feeling today?</p>
+                        <div class="quick-actions">
+                            <button class="chip" data-q="I have a headache"><i class="fas fa-head-side-virus"></i>Headache</button>
+                            <button class="chip" data-q="Check drug interactions"><i class="fas fa-pills"></i>Drug Info</button>
+                            <button class="chip" data-q="I have a fever"><i class="fas fa-thermometer-half"></i>Fever</button>
+                            <button class="chip" data-q="First aid tips"><i class="fas fa-kit-medical"></i>First Aid</button>
+                            <button class="chip" data-q="I want to upload my prescription"><i class="fas fa-file-prescription"></i>Scan Prescription</button>
+                            <button class="chip" data-q="I have fever headache and body pain"><i class="fas fa-virus"></i>Multiple Symptoms</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <div class="input-wrapper">
+                        <button class="icon-btn attach-btn" title="Attach"><i class="fas fa-paperclip"></i></button>
+                        <input type="text" id="msg-input" placeholder="Describe your symptoms..." autocomplete="off">
+                        <button class="icon-btn mic-btn" id="mic-btn" title="Voice Input"><i class="fas fa-microphone"></i></button>
+                        <button class="send-btn" id="send-btn" title="Send"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                    <p class="disclaimer">AuraMed AI provides guidance only. Always consult a doctor for clinical decisions.</p>
+                </div>
+            </section>
+
+            <!-- Drug Enquiry Page -->
+            <section id="page-drug-enquiry" class="page">
+                <div class="page-scroll">
+                    <div class="enquiry-header">
+                        <h2>Drug Enquiry</h2>
+                        <p>Search over 500+ medicines, dosages, and side effects.</p>
+                    </div>
+                    
+                    <div id="cors-warning" class="hidden" style="background:rgba(255,100,100,0.1); border:1px solid rgba(255,100,100,0.3); padding:10px; border-radius:8px; margin-bottom:15px; font-size:0.85rem; color:#ff6b6b">
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        <strong>Local Access Restricted:</strong> Browser security (CORS) may block the clinical database when opened directly as a file. Please use a local server (like Live Server or npm start) for full functionality.
+                    </div>
+                    
+                    <div class="search-box-container">
+                        <div class="search-input-group">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="drug-search-input" placeholder="Search medicine name, brand, or use (e.g. Dolo, Acidity)..." autocomplete="off">
+                            <button id="drug-search-btn" class="btn-primary-sm">Search</button>
+                            <div id="search-suggestions" class="suggestions-list hidden"></div>
+                        </div>
+                        <div class="filter-chips" id="category-filters">
+                            <span class="f-chip active" data-cat="all">All</span>
+                            <span class="f-chip" data-cat="Neurology">Brain</span>
+                            <span class="f-chip" data-cat="Gastro">Stomach</span>
+                            <span class="f-chip" data-cat="Gynae">Gynae</span>
+                            <span class="f-chip" data-cat="Orthopedics">Bones</span>
+                            <span class="f-chip" data-cat="Diabetes">Diabetes</span>
+                            <span class="f-chip" data-cat="Cardio">Heart</span>
+                            <span class="f-chip" data-cat="Pulmonology">Lungs</span>
+                            <span class="f-chip" data-cat="Psychiatry">Mental Health</span>
+                            <span class="f-chip" data-cat="Vitamin">Vitamins</span>
+                            <span class="f-chip" data-cat="Antibiotic">Antibiotics</span>
+                        </div>
+
+                    <div id="drug-results-container" class="drug-results">
+                        <div class="empty-results">
+                            <i class="fas fa-pills"></i>
+                            <p>Enter a medicine name to see detailed information.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- History Page -->
+            <section id="page-history" class="page">
+                <div class="page-scroll">
+                    <div class="section-head"><h2>Chat History</h2><button class="text-btn danger" id="clear-history-btn"><i class="fas fa-trash"></i> Clear All</button></div>
+                    <div id="history-list" class="history-list"></div>
+                </div>
+            </section>
+
+            <!-- Drug Interaction Checker Page -->
+            <section id="page-drugcheck" class="page">
+                <div class="page-scroll">
+                    <h2>Drug Interaction Checker</h2>
+                    <div class="card">
+                        <h3><i class="fas fa-pills" style="color:var(--accent);margin-right:8px"></i>Enter Medications</h3>
+                        <p style="color:var(--text2);font-size:.85rem;margin-bottom:12px">Enter 2 or more medicines to check for dangerous interactions.</p>
+                        <div id="drug-inputs">
+                            <div class="form-group"><label>Medicine 1</label><input class="form-input drug-input" placeholder="e.g. Aspirin"></div>
+                            <div class="form-group"><label>Medicine 2</label><input class="form-input drug-input" placeholder="e.g. Warfarin"></div>
+                        </div>
+                        <button class="btn-sm" id="add-drug-btn" style="margin-bottom:12px"><i class="fas fa-plus"></i> Add Medicine</button>
+                        <button class="btn-primary-full" id="check-interactions-btn"><i class="fas fa-search"></i> Check Interactions</button>
+                    </div>
+                    <div id="interaction-results" class="card hidden">
+                        <h3><i class="fas fa-triangle-exclamation" style="color:#ff4757;margin-right:8px"></i>Results</h3>
+                        <div id="interaction-body"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Symptom Timeline Tracker Page -->
+            <section id="page-timeline" class="page">
+                <div class="page-scroll">
+                    <h2>Symptom Timeline Tracker</h2>
+                    <div class="card">
+                        <h3><i class="fas fa-plus-circle" style="color:var(--accent);margin-right:8px"></i>Log Symptom</h3>
+                        <div class="form-group"><label>Symptom</label><input class="form-input" id="symptom-name" placeholder="e.g. Headache"></div>
+                        <div class="form-group"><label>Severity (1-10)</label><input class="form-input" id="symptom-severity" type="number" min="1" max="10" value="5"></div>
+                        <div class="form-group"><label>Notes</label><input class="form-input" id="symptom-notes" placeholder="Optional notes"></div>
+                        <button class="btn-primary-full" id="log-symptom-btn"><i class="fas fa-save"></i> Log Symptom</button>
+                    </div>
+                    <div class="card" style="min-height: 350px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                            <h3 style="margin:0;"><i class="fas fa-chart-line" style="color:var(--accent);margin-right:8px"></i>Symptom Chart</h3>
+                            <select id="chart-time-filter" class="select-sm" style="width:auto; padding:4px 8px; font-size:0.8rem;">
+                                <option value="7">Last 7 Days</option>
+                                <option value="14">Last 14 Days</option>
+                                <option value="30">Last 30 Days</option>
+                                <option value="999">All Time</option>
+                            </select>
+                        </div>
+                        <div style="position: relative; height: 300px; width: 100%;">
+                            <canvas id="symptom-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Recent Logs</h3>
+                        <div id="symptom-logs"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Medication Reminders Page -->
+            <section id="page-reminders" class="page">
+                <div class="page-scroll">
+                    <h2>Medication Reminders</h2>
+                    <div class="card">
+                        <h3><i class="fas fa-clock" style="color:var(--accent);margin-right:8px"></i>Add Reminder</h3>
+                        <div class="form-group"><label>Medicine Name</label><input class="form-input" id="reminder-med" placeholder="e.g. Vitamin D3"></div>
+                        <div class="form-group"><label>Time</label><input class="form-input" id="reminder-time" type="time" value="08:00"></div>
+                        <div class="form-group"><label>Frequency</label>
+                            <select class="form-input" id="reminder-freq">
+                                <option value="daily">Daily</option>
+                                <option value="twice">Twice Daily</option>
+                                <option value="weekly">Weekly</option>
+                            </select>
+                        </div>
+                        <button class="btn-primary-full" id="add-reminder-btn"><i class="fas fa-bell"></i> Set Reminder</button>
+                    </div>
+                    <div class="card">
+                        <h3>Active Reminders</h3>
+                        <div id="reminders-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Health Profile Page -->
+            <section id="page-health" class="page">
+                <div class="page-scroll">
+                    <h2>Health Profile</h2>
+                    <div class="card-grid">
+                        <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-heart-pulse"></i></div><div class="stat-val" id="health-hr">--</div><div class="stat-label">Heart Rate (bpm)</div></div>
+                        <div class="stat-card"><div class="stat-icon green"><i class="fas fa-droplet"></i></div><div class="stat-val" id="health-bp">--/--</div><div class="stat-label">Blood Pressure</div></div>
+                        <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-weight-scale"></i></div><div class="stat-val" id="health-weight">-- kg</div><div class="stat-label">Weight</div></div>
+                        <div class="stat-card"><div class="stat-icon purple"><i class="fas fa-ruler-vertical"></i></div><div class="stat-val" id="health-height">-- cm</div><div class="stat-label">Height</div></div>
+                    </div>
+                    <div class="card">
+                        <h3>Medical Info</h3>
+                        <div class="info-row"><span>Blood Group</span><span class="tag" id="health-blood">--</span></div>
+                        <div class="info-row"><span>Allergies</span><span class="tag warn" id="health-allergies">--</span></div>
+                        <div class="info-row"><span>Conditions</span><span class="tag" id="health-conditions">--</span></div>
+                    </div>
+                    <div class="card">
+                        <h3>Current Medications</h3>
+                        <div id="health-meds-list">
+                            <p class="empty-state" style="font-size: 0.9rem; margin-top: 10px;">Chat with the AI about your medications, and they will automatically appear here.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Page -->
+            <section id="page-settings" class="page">
+                <div class="page-scroll">
+                    <h2>Settings</h2>
+
+                    <!-- Profile Section -->
+                    <div class="settings-group">
+                        <div class="settings-group-title">Profile</div>
+                        <div class="card profile-card-settings">
+                            <div class="profile-top">
+                                <div class="avatar large" id="settings-avatar">KS</div>
+                                <div><div class="user-name" id="settings-name">KS Kasyap</div><div class="user-email" id="settings-email">kskasyap@email.com</div></div>
+                            </div>
+                            <button class="btn-outline" id="edit-profile-btn"><i class="fas fa-pen"></i> Edit Profile</button>
+                        </div>
+                    </div>
+
+                    <!-- Appearance -->
+                    <div class="settings-group">
+                        <div class="settings-group-title">Appearance</div>
+                        <div class="card">
+                            <div class="setting-row" id="theme-toggle-row">
+                                <div class="setting-info"><i class="fas fa-moon"></i><div><span>Dark Mode</span><small>Toggle dark/light theme</small></div></div>
+                                <label class="switch"><input type="checkbox" id="theme-toggle" checked><span class="slider"></span></label>
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-palette"></i><div><span>Accent Color</span><small>Choose app color theme</small></div></div>
+                                <div class="color-picks" id="accent-picks">
+                                    <span class="color-dot active" data-color="#6C63FF" style="background:#6C63FF"></span>
+                                    <span class="color-dot" data-color="#00C9A7" style="background:#00C9A7"></span>
+                                    <span class="color-dot" data-color="#FF6B6B" style="background:#FF6B6B"></span>
+                                    <span class="color-dot" data-color="#FFA940" style="background:#FFA940"></span>
+                                    <span class="color-dot" data-color="#1890FF" style="background:#1890FF"></span>
+                                </div>
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-text-height"></i><div><span>Font Size</span><small>Adjust text size</small></div></div>
+                                <select id="font-size-select" class="select-sm">
+                                    <option value="14">Small</option>
+                                    <option value="16" selected>Medium</option>
+                                    <option value="18">Large</option>
+                                </select>
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-image"></i><div><span>Chat Wallpaper</span><small>Change background</small></div></div>
+                                <button class="btn-sm" id="wallpaper-btn">Choose</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notifications -->
+                    <div class="settings-group">
+                        <div class="settings-group-title">Notifications</div>
+                        <div class="card">
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-bell"></i><div><span>Push Notifications</span><small>Receive health reminders</small></div></div>
+                                <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-clock"></i><div><span>Medication Reminders</span><small>Get pill reminders</small></div></div>
+                                <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-volume-high"></i><div><span>Sound</span><small>Notification sounds</small></div></div>
+                                <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-vibrate"></i><div><span>Vibration</span><small>Haptic feedback</small></div></div>
+                                <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Phone -->
+                    <div class="settings-group">
+                        <div class="settings-group-title">Phone</div>
+                        <div class="card">
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-phone"></i><div><span>Emergency Contact</span><small id="emergency-num">+91 112</small></div></div>
+                                <button class="btn-sm" id="edit-emergency-btn">Edit</button>
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-user-doctor"></i><div><span>My Doctor</span><small id="doctor-num">+91 98765 43210</small></div></div>
+                                <button class="btn-sm" id="edit-doctor-btn">Edit</button>
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-hospital"></i><div><span>Nearest Hospital</span><small>Uses your GPS location</small></div></div>
+                                <button class="btn-sm" id="find-hospital-btn">Find</button>
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-ambulance"></i><div><span>Ambulance</span><small>+91 108</small></div></div>
+                                <button class="btn-sm call-btn-red" id="call-ambulance-btn">Call</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Privacy & Security -->
+                    <div class="settings-group">
+                        <div class="settings-group-title">Privacy & Security</div>
+                        <div class="card">
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-fingerprint"></i><div><span>Biometric Lock</span><small>Use fingerprint to unlock</small></div></div>
+                                <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-lock"></i><div><span>Change PIN</span><small>Update your security PIN</small></div></div>
+                                <button class="btn-sm" id="change-pin-btn">Change</button>
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-shield-halved"></i><div><span>Two-Factor Auth</span><small>Extra security layer</small></div></div>
+                                <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-eye-slash"></i><div><span>Hide Medical Data</span><small>Blur sensitive info</small></div></div>
+                                <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Settings -->
+                    <div class="settings-group">
+                        <div class="settings-group-title">Chat Settings</div>
+                        <div class="card">
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-language"></i><div><span>Language</span><small>Chat language</small></div></div>
+                                <select id="lang-select" class="select-sm">
+                                    <option>English</option>
+                                    <option>Hindi</option>
+                                    <option>Tamil</option>
+                                    <option>Telugu</option>
+                                </select>
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-microphone"></i><div><span>Voice Input</span><small>Real speech recognition</small></div></div>
+                                <label class="switch"><input type="checkbox" id="voice-input-toggle" checked><span class="slider"></span></label>
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-volume-up"></i><div><span>Read Aloud</span><small>Bot speaks responses via TTS</small></div></div>
+                                <label class="switch"><input type="checkbox" id="tts-toggle"><span class="slider"></span></label>
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-robot"></i><div><span>AI Model</span><small>Choose response style</small></div></div>
+                                <select id="model-select" class="select-sm">
+                                    <option>Balanced</option>
+                                    <option>Detailed</option>
+                                    <option>Concise</option>
+                                </select>
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-key"></i><div><span>Gemini API Key</span><small id="api-key-status">Not set</small></div></div>
+                                <button class="btn-sm" id="set-api-key-btn">Set Key</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data & Storage -->
+                    <div class="settings-group">
+                        <div class="settings-group-title">Data & Storage</div>
+                        <div class="card">
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-file-pdf"></i><div><span>Export Consultation PDF</span><small>Download chat as PDF</small></div></div>
+                                <button class="btn-sm" id="export-pdf-btn">Export</button>
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-file-export"></i><div><span>Export Health Data</span><small>Download full medical profile</small></div></div>
+                                <button class="btn-sm" id="export-data-btn">Export</button>
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-cloud-arrow-up"></i><div><span>Cloud Backup</span><small>Sync to cloud</small></div></div>
+                                <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-database"></i><div><span>Storage Used</span><small>24.5 MB of 100 MB</small></div></div>
+                                <div class="storage-bar"><div class="storage-fill" style="width:24.5%"></div></div>
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info"><i class="fas fa-trash-can"></i><div><span>Clear Cache</span><small>Free up space</small></div></div>
+                                <button class="btn-sm danger" id="clear-cache-btn">Clear</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- About -->
+                    <div class="settings-group">
+                        <div class="settings-group-title">About</div>
+                        <div class="card">
+                            <div class="setting-row"><div class="setting-info"><i class="fas fa-circle-info"></i><div><span>Version</span><small>3.0.0</small></div></div></div>
+                            <div class="setting-row"><div class="setting-info"><i class="fas fa-file-contract"></i><div><span>Terms of Service</span></div></div><i class="fas fa-chevron-right dim"></i></div>
+                            <div class="setting-row"><div class="setting-info"><i class="fas fa-user-shield"></i><div><span>Privacy Policy</span></div></div><i class="fas fa-chevron-right dim"></i></div>
+                            <div class="setting-row"><div class="setting-info"><i class="fas fa-star"></i><div><span>Rate Us</span></div></div><i class="fas fa-chevron-right dim"></i></div>
+                        </div>
+                    </div>
+
+                    <button class="btn-danger-full" id="logout-btn"><i class="fas fa-right-from-bracket"></i> Log Out</button>
+                    <div class="footer-text">Made with <i class="fas fa-heart"></i> MediBot AI © 2026</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div class="modal" id="modal-box">
+            <div class="modal-header"><h3 id="modal-title">Modal</h3><button class="icon-btn" id="modal-close"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body" id="modal-body"></div>
+            <div class="modal-footer" id="modal-footer"></div>
+        </div>
+    </div>
+
+    <!-- Onboarding Modal -->
+    <div id="onboarding-modal" class="modal-overlay hidden" style="z-index: 3000; overflow-y: auto;">
+        <div class="modal" style="margin: 40px auto;">
+            <div class="modal-header"><h3>Welcome to AuraMed AI</h3></div>
+            <div class="modal-body">
+                <p style="margin-bottom: 15px; color: var(--text2); font-size: 0.9rem;">Please set up your health profile. This data is saved strictly locally on your device.</p>
+                <div class="form-group"><label>First Name*</label><input class="form-input" id="ob-fname" placeholder="e.g. John"></div>
+                <div class="form-group"><label>Last Name*</label><input class="form-input" id="ob-lname" placeholder="e.g. Doe"></div>
+                
+                <div style="display:flex; gap:10px;">
+                    <div class="form-group" style="flex:1;"><label>Age</label><input class="form-input" id="ob-age" type="number" placeholder="e.g. 30"></div>
+                    <div class="form-group" style="flex:1;"><label>Gender</label>
+                        <select class="form-input" id="ob-gender">
+                            <option>Male</option><option>Female</option><option>Other</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div style="display:flex; gap:10px;">
+                    <div class="form-group" style="flex:1;"><label>Weight (kg)</label><input class="form-input" id="ob-weight" type="number" placeholder="e.g. 70"></div>
+                    <div class="form-group" style="flex:1;"><label>Height (cm)</label><input class="form-input" id="ob-height" type="number" placeholder="e.g. 175"></div>
+                </div>
+
+                <div style="display:flex; gap:10px;">
+                    <div class="form-group" style="flex:1;"><label>Heart Rate (bpm)</label><input class="form-input" id="ob-hr" type="number" placeholder="e.g. 72"></div>
+                    <div class="form-group" style="flex:1;"><label>Blood Pressure</label><input class="form-input" id="ob-bp" placeholder="e.g. 120/80"></div>
+                </div>
+
+                <div class="form-group"><label>Allergies</label><input class="form-input" id="ob-allergies" placeholder="e.g. Penicillin, Peanuts (or 'None')"></div>
+                <div class="form-group"><label>Medical Conditions</label><input class="form-input" id="ob-conditions" placeholder="e.g. Asthma, Diabetes (or 'None')"></div>
+
+                <div class="form-group"><label>Blood Group</label>
+                    <select class="form-input" id="ob-blood">
+                        <option>Unknown</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+                        <option>O+</option><option>O-</option><option>AB+</option><option>AB-</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer" style="margin-top:15px; display:flex; gap:10px;">
+                <button class="btn-sm" id="ob-skip-btn" style="flex:1;">Skip</button>
+                <button class="btn-primary-full" id="ob-save-btn" style="flex:2;">Save Profile & Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Panel -->
+    <div id="notif-panel" class="notif-panel hidden">
+        <div class="notif-header"><h3>Notifications</h3><button class="text-btn" id="notif-clear">Clear all</button></div>
+        <div class="notif-list">
+            <div class="notif-item unread"><div class="notif-icon blue"><i class="fas fa-capsules"></i></div><div><strong>Medication Reminder</strong><p>Time to take Vitamin D3</p><small>5 min ago</small></div></div>
+            <div class="notif-item unread"><div class="notif-icon green"><i class="fas fa-calendar-check"></i></div><div><strong>Appointment</strong><p>Dr. Sharma tomorrow at 10 AM</p><small>1 hr ago</small></div></div>
+            <div class="notif-item"><div class="notif-icon orange"><i class="fas fa-heart-pulse"></i></div><div><strong>Health Tip</strong><p>Stay hydrated! Drink 8 glasses today</p><small>3 hrs ago</small></div></div>
+        </div>
+    </div>
+
+    <!-- Call Panel -->
+    <div id="call-panel" class="call-panel hidden">
+        <div class="call-content">
+            <div class="call-avatar"><i class="fas fa-phone-volume"></i></div>
+            <h3>Emergency Services</h3>
+            <p id="call-number">+91 112</p>
+            <div class="call-status" id="call-status">Connecting...</div>
+            <div class="call-actions">
+                <button class="call-action-btn mute"><i class="fas fa-microphone-slash"></i><span>Mute</span></button>
+                <button class="call-action-btn end" id="end-call"><i class="fas fa-phone-slash"></i><span>End</span></button>
+                <button class="call-action-btn speaker"><i class="fas fa-volume-high"></i><span>Speaker</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wallpaper Modal -->
+    <div id="wallpaper-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header"><h3>Chat Wallpaper</h3><button class="icon-btn wallpaper-close"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body">
+                <div class="wallpaper-grid" id="wallpaper-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Recording Indicator -->
+    <div id="voice-indicator" class="voice-indicator hidden">
+        <div class="voice-pulse"></div>
+        <span>Listening...</span>
+        <button id="stop-voice" class="btn-sm danger">Stop</button>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="med-data.js"></script>
+    <script src="database.js"></script>
+    <script src="features.js"></script>
+    <script src="app-core.js"></script>
+    <script src="app-pages.js"></script>
+</body>
+</html>
